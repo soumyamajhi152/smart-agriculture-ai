@@ -122,7 +122,7 @@ elif page == "Crop Recommendation":
             "Check that Crop_recommendation.xlsx is in the "
             "repository and the required packages are installed."
         )
-    )
+    
 
 elif page == "Irrigation Advisor":
     st.header("💧 Irrigation Advisor")

@@ -39,3 +39,6 @@ def train_crop_model():
     accuracy = accuracy_score(y_test, predictions)
 
     return model, accuracy
+impot joblib
+joblib.dump(model,"crop_model.pkl")
+print("Trained model saved successfully")

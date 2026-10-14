@@ -36,17 +36,92 @@ elif page == "Crop Recommendation":
     st.header("🌾 Crop Recommendation")
     st.write("Enter soil and weather measurements.")
 
-    n = st.number_input("Nitrogen (N)", 0.0, value=90.0)
-    p = st.number_input("Phosphorus (P)", 0.0, value=40.0)
-    k = st.number_input("Potassium (K)", 0.0, value=40.0)
-    temperature = st.number_input("Temperature (°C)", value=25.0)
-    humidity = st.number_input("Humidity (%)", 0.0, 100.0, 80.0)
-    ph = st.number_input("Soil pH", 0.0, 14.0, 6.5)
-    rainfall = st.number_input("Rainfall (mm)", 0.0, value=100.0)
+    import pandas as pd
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import accuracy_score
 
-    st.warning(
-        "The trained crop prediction model has not yet been connected. "
-        "These inputs are ready for integration with the model."
+    @st.cache_resource
+    def train_crop_model():
+        data = pd.read_excel("Crop_recommendation.xlsx")
+
+        X = data[[
+            "N", "P", "K", "temperature",
+            "humidity", "ph", "rainfall"
+        ]]
+        y = data["label"]
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
+
+        model = RandomForestClassifier(
+            n_estimators=100, random_state=42
+        )
+        model.fit(X_train, y_train)
+
+        accuracy = accuracy_score(
+            y_test, model.predict(X_test)
+        )
+
+        return model, accuracy
+
+    try:
+        model, accuracy = train_crop_model()
+
+        st.success(
+            f"Crop prediction model is ready! "
+            f"Test accuracy: {accuracy * 100:.2f}%"
+        )
+
+        n = st.number_input("Nitrogen (N)", min_value=0.0, value=90.0)
+        p = st.number_input("Phosphorus (P)", min_value=0.0, value=40.0)
+        k = st.number_input("Potassium (K)", min_value=0.0, value=40.0)
+        temperature = st.number_input("Temperature (°C)", value=25.0)
+        humidity = st.number_input(
+            "Humidity (%)", min_value=0.0,
+            max_value=100.0, value=80.0
+        )
+        ph = st.number_input(
+            "Soil pH", min_value=0.0,
+            max_value=14.0, value=6.5
+        )
+        rainfall = st.number_input(
+            "Rainfall (mm)", min_value=0.0, value=100.0
+        )
+
+        if st.button("🌱 Recommend Crop"):
+            input_data = pd.DataFrame(
+                [[n, p, k, temperature, humidity, ph, rainfall]],
+                columns=[
+                    "N", "P", "K", "temperature",
+                    "humidity", "ph", "rainfall"
+                ]
+            )
+
+            prediction = model.predict(input_data)[0]
+
+            st.success(f"### Recommended Crop: {prediction.title()}")
+
+            probabilities = model.predict_proba(input_data)[0]
+            confidence = max(probabilities) * 100
+
+            st.info(
+                f"Model confidence: {confidence:.2f}%"
+            )
+
+            st.caption(
+                "This recommendation is based on the dataset "
+                "and model predictions. Actual crop suitability "
+                "depends on local conditions and expert advice."
+            )
+
+    except Exception as e:
+        st.error(f"Unable to load the crop model: {e}")
+        st.info(
+            "Check that Crop_recommendation.xlsx is in the "
+            "repository and the required packages are installed."
+        )
     )
 
 elif page == "Irrigation Advisor":
